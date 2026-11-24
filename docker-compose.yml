@@ -1,0 +1,15 @@
+services:
+  urlshortener:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      Shortener__BaseUrl: http://localhost:8080
+      ConnectionStrings__Shortener: Data Source=/app/data/shortener.db
+    volumes:
+      - shortener-data:/app/data
+    restart: unless-stopped
+
+volumes:
+  shortener-data:
