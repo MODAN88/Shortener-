@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Text;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
@@ -68,6 +69,18 @@ public sealed class UrlShortenerApiTests : IClassFixture<ShortenerFactory>
     public async Task Create_InvalidInputReturnsProblemDetails(string? longUrl)
     {
         var response = await _client.PostAsJsonAsync("/api/v1/urls", new { longUrl });
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Equal("about:blank", body.GetProperty("type").GetString());
+        Assert.True(body.TryGetProperty("detail", out _));
+    }
+
+    [Fact]
+    public async Task Create_MalformedJsonReturnsProblemDetails()
+    {
+        using var content = new StringContent("{\"longUrl\":", Encoding.UTF8, "application/json");
+        var response = await _client.PostAsync("/api/v1/urls", content);
         var body = await response.Content.ReadFromJsonAsync<JsonElement>();
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);

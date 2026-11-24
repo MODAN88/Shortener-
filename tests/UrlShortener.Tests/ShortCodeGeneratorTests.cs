@@ -20,8 +20,15 @@ public sealed class ShortCodeGeneratorTests
     [InlineData("abcdefghij")]
     [InlineData("abc_123")]
     [InlineData("short")]
+    [InlineData("abc١23")]
+    [InlineData("ABCdef")]
     public void IsValid_EnforcesLengthAndAlphabet(string code)
     {
-        Assert.Equal(code.Length is >= 6 and <= 10 && code.All(char.IsLetterOrDigit), ShortCodeRules.IsValid(code));
+        var expected = code.Length is >= 6 and <= 10 &&
+                       code.All(character => character is >= 'a' and <= 'z'
+                                           or >= 'A' and <= 'Z'
+                                           or >= '0' and <= '9');
+
+        Assert.Equal(expected, ShortCodeRules.IsValid(code));
     }
 }

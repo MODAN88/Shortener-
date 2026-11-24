@@ -33,16 +33,21 @@ await using (var scope = app.Services.CreateAsyncScope())
 app.UseExceptionHandler(errorApp => errorApp.Run(async context =>
 {
     var exception = context.Features.Get<IExceptionHandlerFeature>()?.Error;
+    var isBadRequest = exception is BadHttpRequestException;
     context.RequestServices.GetRequiredService<ILoggerFactory>()
         .CreateLogger("GlobalExceptionHandler")
-        .LogError(exception, "Unhandled request error for {Path}", context.Request.Path);
-    context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+        .Log(isBadRequest ? LogLevel.Information : LogLevel.Error, exception,
+            "Request error for {Path}", context.Request.Path);
+    context.Response.StatusCode = isBadRequest
+        ? StatusCodes.Status400BadRequest
+        : StatusCodes.Status500InternalServerError;
     context.Response.ContentType = "application/problem+json";
     await context.Response.WriteAsJsonAsync(new ProblemDetails
     {
         Type = "about:blank",
-        Title = "An unexpected error occurred.",
-        Status = StatusCodes.Status500InternalServerError,
+        Title = isBadRequest ? "Bad request" : "An unexpected error occurred.",
+        Status = context.Response.StatusCode,
+        Detail = isBadRequest ? "The request body is invalid JSON or has an invalid shape." : null,
         Instance = context.Request.Path
     }, options: (JsonSerializerOptions?)null, contentType: "application/problem+json");
 }));
