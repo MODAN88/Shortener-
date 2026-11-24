@@ -96,6 +96,43 @@ public sealed class UrlShortenerApiTests : IClassFixture<ShortenerFactory>
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
+    [Theory]
+    [InlineData("/abc")]
+    [InlineData("/abcdefghi_j")]
+    [InlineData("/")]
+    public async Task Resolve_InvalidShortCodeReturns404(string path)
+    {
+        var response = await _client.GetAsync(path);
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Health_ReturnsHealthy()
+    {
+        var response = await _client.GetAsync("/health");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("text/plain", response.Content.Headers.ContentType?.MediaType);
+        Assert.Equal("Healthy", await response.Content.ReadAsStringAsync());
+    }
+
+    [Fact]
+    public async Task Create_NormalizedRootVariantsReturnSameCode()
+    {
+        var first = await _client.PostAsJsonAsync("/api/v1/urls",
+            new { longUrl = "HTTPS://Example.com/" });
+        var second = await _client.PostAsJsonAsync("/api/v1/urls",
+            new { longUrl = "https://example.com" });
+
+        var firstBody = await first.Content.ReadFromJsonAsync<CreateResponse>();
+        var secondBody = await second.Content.ReadFromJsonAsync<CreateResponse>();
+
+        Assert.True(first.StatusCode is HttpStatusCode.Created or HttpStatusCode.OK);
+        Assert.Equal(HttpStatusCode.OK, second.StatusCode);
+        Assert.Equal(firstBody!.ShortCode, secondBody!.ShortCode);
+    }
+
     private sealed record CreateResponse(string ShortCode, string ShortUrl, string LongUrl, DateTimeOffset CreatedAt);
 }
 

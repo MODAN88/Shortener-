@@ -11,6 +11,8 @@ public sealed class UrlNormalizerTests
     [InlineData("HTTPS://EXAMPLE.COM/?x=1", "https://example.com?x=1")]
     [InlineData("https://Example.com/path/", "https://example.com/path/")]
     [InlineData("http://Example.com/a?b=c", "http://example.com/a?b=c")]
+    [InlineData("https://Example.com/#section", "https://example.com#section")]
+    [InlineData("  http://localhost:8080/  ", "http://localhost:8080")]
     public void TryNormalize_NormalizesRequiredComponents(string input, string expected)
     {
         var result = _normalizer.TryNormalize(input, out var normalized, out var error);
